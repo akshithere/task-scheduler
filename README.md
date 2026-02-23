@@ -12,6 +12,17 @@ A RESTful Task Scheduler Service built with Go. Schedule HTTP requests as one-of
 - **Interactive Docs**: Swagger UI for exploring and testing APIs
 - **Cluster Safety**: PostgreSQL advisory locks prevent duplicate execution across instances
 
+<br/>
+
+<img width="906" height="535" alt="image" src="https://github.com/user-attachments/assets/f6d005a2-b27f-418b-93b0-8186bf4931e7" />
+
+<br/>
+
+<img width="903" height="539" alt="image" src="https://github.com/user-attachments/assets/3efab544-4b95-475e-915a-4ed6ba09b78f" />
+
+<br/>
+
+
 ## Running Locally
 
 ### Prerequisites

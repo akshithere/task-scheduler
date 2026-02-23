@@ -1,0 +1,506 @@
+openapi: 3.0.3
+info:
+  title: Task Scheduler API
+  description: RESTful Task Scheduler Service for managing and executing scheduled HTTP tasks
+  version: 1.0.0
+  contact:
+    name: Task Scheduler Support
+    email: support@taskscheduler.com
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Local development server
+  - url: http://localhost:8080
+    description: Health and metrics endpoints
+
+tags:
+  - name: Tasks
+    description: Task management operations
+  - name: Results
+    description: Task execution results
+  - name: System
+    description: System health and metrics
+
+paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Check if the service is healthy
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: healthy
+                  time:
+                    type: string
+                    format: date-time
+
+  /metrics:
+    get:
+      tags:
+        - System
+      summary: Prometheus metrics
+      description: Get Prometheus metrics for monitoring
+      operationId: getMetrics
+      responses:
+        '200':
+          description: Metrics in Prometheus format
+          content:
+            text/plain:
+              schema:
+                type: string
+
+  /api/v1/tasks:
+    post:
+      tags:
+        - Tasks
+      summary: Create a new task
+      description: Create a new scheduled task
+      operationId: createTask
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+            examples:
+              oneOffTask:
+                summary: One-off task example
+                value:
+                  name: "Send notification"
+                  trigger:
+                    type: "one-off"
+                    datetime: "2025-07-01T10:00:00Z"
+                  action:
+                    method: "POST"
+                    url: "https://api.example.com/notify"
+                    headers:
+                      Content-Type: "application/json"
+                    payload:
+                      message: "Hello World"
+              cronTask:
+                summary: Cron task example
+                value:
+                  name: "Daily health check"
+                  trigger:
+                    type: "cron"
+                    cron: "0 9 * * *"
+                  action:
+                    method: "GET"
+                    url: "https://api.example.com/health"
+      responses:
+        '201':
+          description: Task created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    get:
+      tags:
+        - Tasks
+      summary: List tasks
+      description: Get a paginated list of tasks with optional filtering
+      operationId: listTasks
+      parameters:
+        - name: status
+          in: query
+          description: Filter by task status
+          schema:
+            type: string
+            enum: [scheduled, cancelled, completed]
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of tasks
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskList'
+
+  /api/v1/tasks/{id}:
+    get:
+      tags:
+        - Tasks
+      summary: Get task by ID
+      description: Retrieve a specific task by its ID
+      operationId: getTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags:
+        - Tasks
+      summary: Update task
+      description: Update an existing task
+      operationId: updateTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskInput'
+      responses:
+        '200':
+          description: Task updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Task not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags:
+        - Tasks
+      summary: Cancel task
+      description: Cancel a scheduled task (does not delete it)
+      operationId: deleteTask
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Task cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Task cancelled successfully"
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/v1/tasks/{id}/results:
+    get:
+      tags:
+        - Results
+      summary: Get task results
+      description: Get all execution results for a specific task
+      operationId: getTaskResults
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Task ID
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of task results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResultList'
+
+  /api/v1/results:
+    get:
+      tags:
+        - Results
+      summary: List all results
+      description: Get all task execution results with optional filtering
+      operationId: listAllResults
+      parameters:
+        - name: task_id
+          in: query
+          description: Filter by task ID
+          schema:
+            type: string
+            format: uuid
+        - name: success
+          in: query
+          description: Filter by success status
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          description: Page number
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+        - name: limit
+          in: query
+          description: Items per page
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: List of results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResultList'
+
+components:
+  schemas:
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique task identifier
+        name:
+          type: string
+          description: Task name
+        trigger:
+          $ref: '#/components/schemas/Trigger'
+        action:
+          $ref: '#/components/schemas/Action'
+        status:
+          type: string
+          enum: [scheduled, cancelled, completed]
+          description: Task status
+        next_run:
+          type: string
+          format: date-time
+          nullable: true
+          description: Next scheduled run time (UTC)
+        created_at:
+          type: string
+          format: date-time
+          description: Task creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+    TaskInput:
+      type: object
+      required:
+        - name
+        - trigger
+        - action
+      properties:
+        name:
+          type: string
+          description: Task name
+        trigger:
+          $ref: '#/components/schemas/Trigger'
+        action:
+          $ref: '#/components/schemas/Action'
+
+    Trigger:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [one-off, cron]
+          description: Trigger type
+        datetime:
+          type: string
+          format: date-time
+          description: For one-off tasks - ISO 8601 datetime in UTC
+        cron:
+          type: string
+          description: For cron tasks - valid cron expression
+          example: "0 9 * * *"
+
+    Action:
+      type: object
+      required:
+        - method
+        - url
+      properties:
+        method:
+          type: string
+          description: HTTP method
+          example: GET
+        url:
+          type: string
+          format: uri
+          description: Target URL
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP headers
+        payload:
+          type: object
+          description: Request payload (JSON)
+
+    TaskResult:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique result identifier
+        task_id:
+          type: string
+          format: uuid
+          description: Associated task ID
+        run_at:
+          type: string
+          format: date-time
+          description: Execution timestamp
+        status_code:
+          type: integer
+          description: HTTP response status code
+        success:
+          type: boolean
+          description: Whether the execution was successful
+        response_headers:
+          type: object
+          description: HTTP response headers
+        response_body:
+          type: string
+          description: HTTP response body
+        error_message:
+          type: string
+          nullable: true
+          description: Error message if execution failed
+        duration_ms:
+          type: integer
+          format: int64
+          description: Execution duration in milliseconds
+        created_at:
+          type: string
+          format: date-time
+          description: Result creation timestamp
+
+    TaskList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Task'
+        total:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+
+    TaskResultList:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TaskResult'
+        total:
+          type: integer
+          description: Total number of items
+        page:
+          type: integer
+          description: Current page number
+        limit:
+          type: integer
+          description: Items per page
+        total_pages:
+          type: integer
+          description: Total number of pages
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error message

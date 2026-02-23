@@ -1,0 +1,351 @@
+{
+  "info": {
+    "name": "Task Scheduler API",
+    "description": "RESTful Task Scheduler Service for managing and executing scheduled HTTP tasks",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "apiUrl",
+      "value": "http://localhost:8080/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "taskId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            },
+            "description": "Check if the service is healthy"
+          }
+        },
+        {
+          "name": "Get Metrics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/metrics",
+              "host": ["{{baseUrl}}"],
+              "path": ["metrics"]
+            },
+            "description": "Get Prometheus metrics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tasks",
+      "item": [
+        {
+          "name": "Create One-Off Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('taskId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Send notification\",\n  \"trigger\": {\n    \"type\": \"one-off\",\n    \"datetime\": \"2025-07-01T10:00:00Z\"\n  },\n  \"action\": {\n    \"method\": \"POST\",\n    \"url\": \"https://httpbin.org/post\",\n    \"headers\": {\n      \"Content-Type\": \"application/json\"\n    },\n    \"payload\": {\n      \"message\": \"Hello World\",\n      \"timestamp\": \"2025-07-01T10:00:00Z\"\n    }\n  }\n}"
+            },
+            "url": {
+              "raw": "{{apiUrl}}/tasks",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks"]
+            },
+            "description": "Create a one-off task that runs at a specific datetime"
+          }
+        },
+        {
+          "name": "Create Cron Task",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('taskId', response.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Daily health check\",\n  \"trigger\": {\n    \"type\": \"cron\",\n    \"cron\": \"0 9 * * *\"\n  },\n  \"action\": {\n    \"method\": \"GET\",\n    \"url\": \"https://httpbin.org/get\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{apiUrl}}/tasks",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks"]
+            },
+            "description": "Create a recurring task using cron expression"
+          }
+        },
+        {
+          "name": "List All Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/tasks?page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "status",
+                  "value": "scheduled",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get a paginated list of all tasks"
+          }
+        },
+        {
+          "name": "List Scheduled Tasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/tasks?status=scheduled&page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks"],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "scheduled"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get only scheduled tasks"
+          }
+        },
+        {
+          "name": "Get Task by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/tasks/{{taskId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks", "{{taskId}}"]
+            },
+            "description": "Get a specific task by ID"
+          }
+        },
+        {
+          "name": "Update Task",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated task name\",\n  \"trigger\": {\n    \"type\": \"cron\",\n    \"cron\": \"0 10 * * *\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{apiUrl}}/tasks/{{taskId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks", "{{taskId}}"]
+            },
+            "description": "Update an existing task"
+          }
+        },
+        {
+          "name": "Cancel Task",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/tasks/{{taskId}}",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks", "{{taskId}}"]
+            },
+            "description": "Cancel a task (does not delete it)"
+          }
+        },
+        {
+          "name": "Get Task Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/tasks/{{taskId}}/results?page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["tasks", "{{taskId}}", "results"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get all execution results for a specific task"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Results",
+      "item": [
+        {
+          "name": "List All Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/results?page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["results"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "task_id",
+                  "value": "{{taskId}}",
+                  "disabled": true
+                },
+                {
+                  "key": "success",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get all task execution results with optional filtering"
+          }
+        },
+        {
+          "name": "List Successful Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/results?success=true&page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["results"],
+              "query": [
+                {
+                  "key": "success",
+                  "value": "true"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get only successful task executions"
+          }
+        },
+        {
+          "name": "List Failed Results",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{apiUrl}}/results?success=false&page=1&limit=20",
+              "host": ["{{apiUrl}}"],
+              "path": ["results"],
+              "query": [
+                {
+                  "key": "success",
+                  "value": "false"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            },
+            "description": "Get only failed task executions"
+          }
+        }
+      ]
+    }
+  ]
+}
